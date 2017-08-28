@@ -1,0 +1,8 @@
+[package]
+name = "mandelrs"
+version = "0.1.0"
+authors = ["Árpád Goretity <h2co3@h2co3.org>"]
+
+[dependencies]
+sdl2 = "0.30.0"
+spmc = "0.2.2"
