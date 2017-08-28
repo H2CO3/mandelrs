@@ -61,7 +61,7 @@ fn is_mandelbrot_member(c_re: Fix28, c_im: Fix28) -> bool {
     let four = Fix28::from(4.0);
 
     // Fast bail-out path: the biggest cardioid and the somewhat
-    // smaller circle centered at -1 can be easily derected;
+    // smaller circle centered at -1 can be easily detected;
     // they save us approximately half of the work.
     let small_circle_center_x = Fix28::from(-1.0);
     let small_circle_center_y = zero;
@@ -104,7 +104,7 @@ fn is_mandelbrot_member(c_re: Fix28, c_im: Fix28) -> bool {
 fn compute_block(x: i32, y: i32, points: &mut Vec<Point>) {
     for x in x..x + BLOCK_WIDTH {
         for y in y..y + BLOCK_HEIGHT {
-            // Conver coordinates to 4.28 fixpoint
+            // Convert coordinates to 4.28 fixpoint
             let re = Fix28((x - 3 * (WIDTH / 4)) << 20);
             let im = Fix28((y - (HEIGHT / 2)) << 20);
 
