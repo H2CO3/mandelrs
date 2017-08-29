@@ -11,64 +11,65 @@ use sdl2::rect::Point;
 
 const WIDTH: i32 = 512;
 const HEIGHT: i32 = 512;
-const NUM_THREADS: usize = 8;
 const BLOCK_WIDTH: i32 = 16;
 const BLOCK_HEIGHT: i32 = 16;
+const NUM_THREADS: usize = 8;
+const NUM_FRAC_BITS: usize = 23;
 
-// 4.28 fixpoint number type
+// Fixpoint number type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Fix28(i32);
+struct Fix(i32);
 
-impl Add for Fix28 {
+impl Add for Fix {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
-        Fix28(self.0 + other.0)
+        Fix(self.0 + other.0)
     }
 }
 
-impl Sub for Fix28 {
+impl Sub for Fix {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
-        Fix28(self.0 - other.0)
+        Fix(self.0 - other.0)
     }
 }
 
-impl Mul for Fix28 {
+impl Mul for Fix {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self::Output {
-        Fix28(((self.0 as i64 * other.0 as i64) >> 28) as i32)
+        Fix(((self.0 as i64 * other.0 as i64) >> NUM_FRAC_BITS) as i32)
     }
 }
 
-impl From<f32> for Fix28 {
+impl From<f32> for Fix {
     fn from(value: f32) -> Self {
-        Fix28((value * (1 << 28) as f32).round() as i32)
+        Fix((value * (1 << NUM_FRAC_BITS) as f32).round() as i32)
     }
 }
 
-impl From<Fix28> for f32 {
-    fn from(value: Fix28) -> Self {
-        value.0 as f32 / (1 << 28) as f32
+impl From<Fix> for f32 {
+    fn from(value: Fix) -> Self {
+        value.0 as f32 / (1 << NUM_FRAC_BITS) as f32
     }
 }
 
-fn is_mandelbrot_member(c_re: Fix28, c_im: Fix28) -> bool {
-    let zero = Fix28::from(0.0);
-    let two  = Fix28::from(2.0);
-    let four = Fix28::from(4.0);
+fn is_mandelbrot_member(c_re: Fix, c_im: Fix) -> bool {
+    let zero = Fix::from(0.0);
+    let two  = Fix::from(2.0);
+    let four = Fix::from(4.0);
 
     // Fast bail-out path: the biggest cardioid and the somewhat
     // smaller circle centered at -1 can be easily detected;
     // they save us approximately half of the work.
-    let small_circle_center_x = Fix28::from(-1.0);
+    let small_circle_center_x = Fix::from(-1.0);
     let small_circle_center_y = zero;
-    let small_circle_radius_sq = Fix28::from(0.25 * 0.25);
-    let big_circle_center_x = Fix28::from(-0.265625);
+    let small_circle_radius_sq = Fix::from(0.25 * 0.25);
+    let big_circle_center_x = Fix::from(-0.265625);
     let big_circle_center_y = zero;
-    let big_circle_radius_sq = Fix28::from(0.5 * 0.5);
+    let big_circle_radius_sq = Fix::from(0.5 * 0.5);
 
     let dx_small = c_re - small_circle_center_x;
     let dy_small = c_im - small_circle_center_y;
@@ -100,13 +101,12 @@ fn is_mandelbrot_member(c_re: Fix28, c_im: Fix28) -> bool {
     true
 }
 
-
 fn compute_block(x: i32, y: i32, points: &mut Vec<Point>) {
     for x in x..x + BLOCK_WIDTH {
         for y in y..y + BLOCK_HEIGHT {
-            // Convert coordinates to 4.28 fixpoint
-            let re = Fix28((x - 3 * (WIDTH / 4)) << 20);
-            let im = Fix28((y - (HEIGHT / 2)) << 20);
+            // Convert coordinates to fixpoint
+            let re = Fix((x - 3 * (WIDTH / 4)) << (NUM_FRAC_BITS - 8));
+            let im = Fix((y - (HEIGHT / 2)) << (NUM_FRAC_BITS - 8));
 
             if is_mandelbrot_member(re, im) {
                 // symmetry along the Y axis: z in M <=> z* in M
@@ -178,12 +178,10 @@ fn main() {
     // Wait for Escape keypress or the user closing the window
     loop {
         for event in pump.poll_iter() {
-            if let Event::KeyUp { keycode: Some(Keycode::Escape), .. } = event {
-                return
-            }
-
-            if let Event::Quit { .. } = event {
-                return
+            match event {
+                Event::KeyUp { keycode: Some(Keycode::Escape), .. } => return,
+                Event::Quit { .. } => return,
+                _ => {},
             }
         }
     }
